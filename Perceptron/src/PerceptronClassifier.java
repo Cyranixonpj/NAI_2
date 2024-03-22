@@ -3,6 +3,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class PerceptronClassifier {
@@ -14,7 +15,6 @@ public class PerceptronClassifier {
             String[] parts = line.trim().split("\\s+");
             List<Double> attributes = new ArrayList<>();
             for (int i = 0; i < parts.length - 1; i++) {
-                // Replace commas with dots for numerical consistency
                 attributes.add(Double.parseDouble(parts[i].replace(",", ".")));
             }
             data.add(new IrisExample(attributes, parts[parts.length - 1]));
@@ -24,34 +24,44 @@ public class PerceptronClassifier {
     }
 
     private static int perceptron(List<IrisExample> trainingData, List<IrisExample> testData) {
-        double threshold = 0.0;
         double learningRate = 0.1;
         List<Double> weights = new ArrayList<>();
         for (int i = 0; i < trainingData.get(0).getAttributes().size(); i++) {
             weights.add(0.0); // Initialize weights to 0
         }
+        double threshold = 0.0; // Initialize threshold
 
-        // Train perceptron
-        for (IrisExample example : trainingData) {
-            List<Double> attributes = example.getAttributes();
-            double activation = 0.0;
-            for (int i = 0; i < attributes.size(); i++) {
-                activation += attributes.get(i) * weights.get(i);
-            }
-            int target;
-            if (example.getDecisionAttribute().equals("Iris-setosa")) {
-                target = 1;
-            } else {
-                target = -1;
-            }
-
-            double error = target - activation;
-            if (error != 0) {
-                for (int i = 0; i < weights.size(); i++) {
-                    double delta = learningRate * error * attributes.get(i);
-                    weights.set(i, weights.get(i) + delta);
+        int maxIterations = 10000; // Increased number of iterations
+        for (int iteration = 0; iteration < maxIterations; iteration++) {
+            for (IrisExample example : trainingData) {
+                List<Double> attributes = example.getAttributes();
+                double activation = 0.0;
+                for (int i = 0; i < attributes.size(); i++) {
+                    activation += attributes.get(i) * weights.get(i);
                 }
-                threshold += learningRate * error; // Update threshold
+                activation += threshold; // Add threshold to activation
+
+                int target;
+                if (example.getDecisionAttribute().equals("Iris-setosa")) {
+                    target = 1;
+                } else {
+                    target = 0;
+                }
+
+                int prediction;
+                if (activation >= 0) {
+                    prediction = 1;
+                } else {
+                    prediction = 0;
+                }
+
+                if (prediction != target) {
+                    for (int i = 0; i < weights.size(); i++) {
+                        double delta = learningRate * (target - prediction) * attributes.get(i);
+                        weights.set(i, weights.get(i) + delta);
+                    }
+                    threshold += learningRate * (target - prediction); // Update threshold
+                }
             }
         }
 
@@ -63,23 +73,23 @@ public class PerceptronClassifier {
             for (int i = 0; i < attributes.size(); i++) {
                 activation += attributes.get(i) * weights.get(i);
             }
-            activation += threshold;
-
-            int predictedClass;
-            if (activation >= 0) {
-                predictedClass = 1;
-            } else {
-                predictedClass = -1;
-            }
+            activation += threshold; // Add threshold to activation
 
             int target;
             if (example.getDecisionAttribute().equals("Iris-setosa")) {
                 target = 1;
             } else {
-                target = -1;
+                target = 0;
             }
 
-            if (predictedClass == target) {
+            int prediction;
+            if (activation >= 0) {
+                prediction = 1;
+            } else {
+                prediction = 0;
+            }
+
+            if (prediction == target) {
                 correctlyClassified++;
             }
         }
@@ -92,8 +102,8 @@ public class PerceptronClassifier {
             List<IrisExample> trainingData = readData("iris_training.txt");
             List<IrisExample> testData = readData("iris_test.txt");
 
-            int correctlyClassified = perceptron(trainingData, testData);
-            double accuracy = (double) correctlyClassified / testData.size() * 100;
+            int correctlyClassified = perceptron(trainingData, testData); // Test on test data
+            double accuracy = (double) correctlyClassified / testData.size() * 100; // Calculate accuracy based on test data
 
             System.out.println("Liczba prawidłowo zaklasyfikowanych przykładów: " + correctlyClassified);
             System.out.println("Dokładność eksperymentu: " + accuracy + "%");
